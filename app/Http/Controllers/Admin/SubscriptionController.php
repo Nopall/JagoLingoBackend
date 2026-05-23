@@ -34,19 +34,16 @@ class SubscriptionController extends Controller
 
     public function show($id)
     {
-        try {
-            $subscription = Subscription::with(['user', 'package', 'payment'])
-                ->findOrFail($id);
-            
-            // Check jika user sudah dihapus
-            if ($subscription->user && $subscription->user->is_deleted) {
-                return redirect()->back()->with('error', 'This subscription belongs to a deleted user.');
-            }
-            
-            return view('subscription.detail', compact('subscription'));
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Subscription not found.');
-        }
+        $subscription = Subscription::with(['user', 'payment.package'])
+            ->findOrFail($id);
+
+        // Ambil semua subscription milik user yang sama
+        $allSubscriptions = Subscription::with('payment.package')
+            ->where('user_id', $subscription->user_id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('subscription.detail', compact('subscription', 'allSubscriptions'));
     }
 
     public function activateSubscription($id)
