@@ -13,23 +13,24 @@ class SubscriptionController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $filter = $request->input('filter', 'all'); // all | active | inactive
 
         $users = \App\Models\User::where('is_deleted', 0)
-            ->whereHas('subscriptions')
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($q2) use ($search) {
-                    $q2->where('name', 'like', "%{$search}%")
-                       ->orWhere('email', 'like', "%{$search}%");
-                });
-            })
-            ->with(['subscriptions' => function ($q) {
-                $q->with('payment.package')->orderBy('created_at', 'desc');
-            }])
+            ->when($filter === 'all', fn($q) => $q->whereHas('subscriptions'))
+            ->when($filter === 'active', fn($q) => $q->whereHas('subscriptions', fn($q2) => $q2->where('is_active', 1)))
+            ->when($filter === 'inactive', fn($q) => $q->whereHas('subscriptions', fn($q2) => $q2->where('is_active', 0))->whereDoesntHave('subscriptions', fn($q2) => $q2->where('is_active', 1)))
+            ->when($search, fn($q) => $q->where(fn($q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")))
+            ->with(['subscriptions' => fn($q) => $q->with('payment.package')->orderBy('created_at', 'desc')])
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
-        return view('subscription.list', compact('users', 'search'));
+        // Hitung tiap status untuk badge counter
+        $countAll      = \App\Models\User::where('is_deleted', 0)->whereHas('subscriptions')->count();
+        $countActive   = \App\Models\User::where('is_deleted', 0)->whereHas('subscriptions', fn($q) => $q->where('is_active', 1))->count();
+        $countInactive = $countAll - $countActive;
+
+        return view('subscription.list', compact('users', 'search', 'filter', 'countAll', 'countActive', 'countInactive'));
     }
 
     public function show($id)

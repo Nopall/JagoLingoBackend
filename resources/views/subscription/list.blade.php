@@ -12,10 +12,46 @@
     <span class="badge bg-label-primary fs-6">{{ $users->total() }} Pengguna</span>
 </div>
 
-{{-- Search --}}
+{{-- Filter Tabs + Search dalam satu card --}}
 <div class="card border-0 shadow-sm mb-3">
+
+    {{-- Tab Filter --}}
+    <div class="border-bottom px-3">
+        <ul class="nav nav-tabs border-0" style="margin-bottom: -1px;">
+            <li class="nav-item">
+                <a class="nav-link {{ $filter === 'all' ? 'active fw-semibold' : 'text-muted' }}"
+                   href="{{ route('master.subscription.list', array_filter(['search' => $search, 'filter' => 'all'])) }}">
+                    Semua
+                    <span class="badge {{ $filter === 'all' ? 'bg-primary' : 'bg-label-secondary' }} rounded-pill ms-1">
+                        {{ $countAll }}
+                    </span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ $filter === 'active' ? 'active fw-semibold' : 'text-muted' }}"
+                   href="{{ route('master.subscription.list', array_filter(['search' => $search, 'filter' => 'active'])) }}">
+                    Aktif
+                    <span class="badge {{ $filter === 'active' ? 'bg-success' : 'bg-label-success' }} rounded-pill ms-1">
+                        {{ $countActive }}
+                    </span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ $filter === 'inactive' ? 'active fw-semibold' : 'text-muted' }}"
+                   href="{{ route('master.subscription.list', array_filter(['search' => $search, 'filter' => 'inactive'])) }}">
+                    Tidak Aktif
+                    <span class="badge {{ $filter === 'inactive' ? 'bg-secondary' : 'bg-label-secondary' }} rounded-pill ms-1">
+                        {{ $countInactive }}
+                    </span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    {{-- Search --}}
     <div class="card-body py-3">
         <form method="GET" action="{{ route('master.subscription.list') }}">
+            <input type="hidden" name="filter" value="{{ $filter }}">
             <div class="input-group" style="max-width: 380px;">
                 <span class="input-group-text bg-transparent border-end-0">
                     <i class="bx bx-search text-muted"></i>
@@ -24,7 +60,7 @@
                        placeholder="Cari nama atau email pengguna..."
                        value="{{ $search ?? '' }}">
                 @if($search)
-                    <a href="{{ route('master.subscription.list') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('master.subscription.list', ['filter' => $filter]) }}" class="btn btn-outline-secondary">
                         <i class="bx bx-x"></i>
                     </a>
                 @else
@@ -51,11 +87,10 @@
             <tbody>
                 @forelse($users as $user)
                 @php
-                    $subs = $user->subscriptions;
+                    $subs      = $user->subscriptions;
                     $hasActive = $subs->where('is_active', 1)->count() > 0;
                 @endphp
                 <tr>
-                    {{-- No --}}
                     <td class="ps-3 text-muted small">
                         {{ ($users->currentPage() - 1) * $users->perPage() + $loop->iteration }}
                     </td>
@@ -100,26 +135,27 @@
                             @endif
                         </div>
                         <div class="text-muted mt-1" style="font-size: 0.72rem;">
-                            {{ $subs->count() }} langganan &bull;
-                            {{ $subs->where('is_active', 1)->count() }} aktif
+                            {{ $subs->count() }} langganan &bull; {{ $subs->where('is_active', 1)->count() }} aktif
                         </div>
                     </td>
 
-                    {{-- Status --}}
+                    {{-- Status Akun --}}
                     <td>
-                        @if($user->is_premium)
-                            <span class="badge bg-label-warning rounded-pill">
-                                <i class="bx bx-crown me-1"></i> Premium
+                        @if($hasActive)
+                            <span class="badge bg-label-success rounded-pill">
+                                <i class="bx bx-check-circle me-1"></i> Aktif
                             </span>
                         @else
-                            <span class="badge bg-label-secondary rounded-pill">Gratis</span>
+                            <span class="badge bg-label-danger rounded-pill">
+                                <i class="bx bx-x-circle me-1"></i> Tidak Aktif
+                            </span>
                         @endif
                     </td>
 
                     {{-- Aksi --}}
                     <td class="text-center pe-3">
                         <a href="{{ route('subscription.show', $subs->first()->id) }}"
-                           class="btn btn-sm btn-outline-primary" title="Lihat Detail Subscription">
+                           class="btn btn-sm btn-outline-primary" title="Lihat Detail">
                             <i class="bx bx-show me-1"></i> Detail
                         </a>
                     </td>
@@ -130,6 +166,10 @@
                         <i class="bx bx-inbox bx-lg d-block mb-2"></i>
                         @if($search)
                             Tidak ada hasil untuk "<strong>{{ $search }}</strong>"
+                        @elseif($filter === 'active')
+                            Tidak ada pengguna dengan subscription aktif
+                        @elseif($filter === 'inactive')
+                            Tidak ada pengguna dengan subscription tidak aktif
                         @else
                             Belum ada pengguna yang berlangganan
                         @endif
@@ -146,9 +186,7 @@
         <div class="text-muted small">
             Menampilkan {{ $users->firstItem() }}–{{ $users->lastItem() }} dari {{ $users->total() }} pengguna
         </div>
-        <div>
-            {{ $users->links('pagination::bootstrap-5') }}
-        </div>
+        {{ $users->links('pagination::bootstrap-5') }}
     </div>
     @endif
 </div>
