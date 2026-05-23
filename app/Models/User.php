@@ -48,7 +48,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserDevice::class);
     }
-    
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
     public function chatDetails()
     {
         return $this->hasMany(ChatDetail::class, 'sender_id');

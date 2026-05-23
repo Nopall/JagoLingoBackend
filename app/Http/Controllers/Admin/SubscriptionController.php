@@ -10,9 +10,26 @@ use Illuminate\Http\Request;
 
 class SubscriptionController extends Controller
 {
-    public function index(SubscriptionDataTable $dataTable)
+    public function index(Request $request)
     {
-        return $dataTable->render('subscription.list');
+        $search = $request->input('search');
+
+        $users = \App\Models\User::where('is_deleted', 0)
+            ->whereHas('subscriptions')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('name', 'like', "%{$search}%")
+                       ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->with(['subscriptions' => function ($q) {
+                $q->with('payment.package')->orderBy('created_at', 'desc');
+            }])
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('subscription.list', compact('users', 'search'));
     }
 
     public function show($id)
