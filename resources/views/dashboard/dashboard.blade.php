@@ -54,9 +54,9 @@
     </div>
     <div class="col-sm-6 col-xl-3">
         <x-card-statistic
-            label="Subscription Aktif"
+            label="Total Subscription"
             :value="number_format($activeSubscriptions)"
-            description="Berlangganan saat ini"
+            description="Semua subscription"
             icon="bx-crown"
             color="warning"
         />

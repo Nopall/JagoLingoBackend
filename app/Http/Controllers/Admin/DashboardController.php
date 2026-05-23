@@ -15,7 +15,7 @@ class DashboardController extends Controller
         $totalUsers = User::where('is_deleted', 0)->count();
         $totalCourses = Course::count();
         $totalPackages = Package::count();
-        $activeSubscriptions = Subscription::where('is_active', true)->where('status', 'active')->count();
+        $activeSubscriptions = Subscription::count();
         $recentSubscriptions = Subscription::with(['user', 'package'])
             ->orderBy('created_at', 'desc')
             ->take(6)
