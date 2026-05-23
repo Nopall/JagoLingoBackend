@@ -1,11 +1,9 @@
-<div>
-    @php
-        $product_id = request()->route('id'); // Mendapatkan nilai 'id' dari URL
-    @endphp
-    <a href="{{ route('productimage.form-edit', ['id' => $product_id, 'id_image' => $id]) }}" class="btn btn-sm btn-warning"><span class="fa fa-pencil"></span> Edit</a>
-    <button id="btn-delete-product" class="btn btn-sm btn-danger" onclick="deleteLessonById({{ $id }})">
-        <div id="loading-indicator" class="spinner-border spinner-border-sm text-default d-none" role="status"></div>
-        <span class="fa fa-trash"></span>
-        Delete
+<div class="d-flex gap-1">
+    @php $product_id = request()->route('id'); @endphp
+    <a href="{{ route('phaselesson.form-edit', ['id' => $product_id, 'lesson_id' => $id]) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+        <i class="bx bx-edit-alt"></i>
+    </a>
+    <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteLesson({{ $id }})" title="Hapus">
+        <i class="bx bx-trash"></i>
     </button>
 </div>

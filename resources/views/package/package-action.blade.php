@@ -1,9 +1,11 @@
-<div>
-    <a href="{{ route('package.form-edit', $id) }}" class="btn btn-sm btn-warning"><span class="fa fa-pencil"></span> Edit</a>
-        <a href="{{ route('package.phase.detail', $id) }}" class="btn btn-sm btn-warning"><span class="fa fa-image"></span> Phase</a>
-    <button id="btn-delete-menu" class="btn btn-sm btn-danger" onclick="deleteById({{ $id }})">
-        <div id="loading-indicator" class="spinner-border spinner-border-sm text-default d-none" role="status"></div>
-        <span class="fa fa-trash"></span>
-        Delete
+<div class="d-flex gap-1">
+    <a href="{{ route('package.form-edit', $id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+        <i class="bx bx-edit-alt"></i>
+    </a>
+    <a href="{{ route('package.phase.detail', $id) }}" class="btn btn-sm btn-outline-info" title="Phase">
+        <i class="bx bx-layer"></i>
+    </a>
+    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ $id }})" title="Hapus">
+        <i class="bx bx-trash"></i>
     </button>
 </div>

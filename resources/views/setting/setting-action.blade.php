@@ -1,8 +1,8 @@
-<div>
-    <a href="{{ route('setting.form-edit', $id) }}" class="btn btn-sm btn-warning"><span class="fa fa-pencil"></span> Edit</a>
-    <button id="btn-delete-setting" class="btn btn-sm btn-danger" onclick="deleteById({{ $id }})">
-        <div id="loading-indicator" class="spinner-border spinner-border-sm text-default d-none" role="status"></div>
-        <span class="fa fa-trash"></span>
-        Delete
+<div class="d-flex gap-1">
+    <a href="{{ route('setting.form-edit', $id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+        <i class="bx bx-edit-alt"></i>
+    </a>
+    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ $id }})" title="Hapus">
+        <i class="bx bx-trash"></i>
     </button>
 </div>
