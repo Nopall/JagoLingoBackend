@@ -83,7 +83,7 @@
                                 @if($sub->payment && $sub->payment->package)
                                     @php $packageShown = true; @endphp
                                     <span class="badge bg-label-{{ $sub->is_active ? 'success' : 'secondary' }} rounded-pill"
-                                          title="{{ $sub->is_active ? 'Aktif' : 'Tidak Aktif' }} — {{ $sub->payment->paid_at ? $sub->payment->paid_at->format('d M Y') : '-' }}">
+                                          title="{{ $sub->is_active ? 'Aktif' : 'Tidak Aktif' }} — {{ $sub->payment->paid_at ? \Carbon\Carbon::parse($sub->payment->paid_at)->format('d M Y') : '-' }}">
                                         <i class="bx bx-crown me-1" style="font-size: 0.7rem;"></i>
                                         {{ $sub->payment->package->name }}
                                     </span>
