@@ -176,6 +176,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/subscription', [SubscriptionController::class, 'index'])->name('master.subscription.list');
         Route::get('/subscription/form', [SubscriptionController::class, 'formCreateSubscription'])->name('subscription.form-create');
         Route::get('/subscription/form/{id}', [SubscriptionController::class, 'formEditSubscription'])->name('subscription.form-edit');
+        Route::post('/subscription/grant-access', [SubscriptionController::class, 'grantAccess'])->name('subscription.grant-access');
 
         Route::get('/subscription/list', [SubscriptionController::class, 'index'])->name('master.subscription.list');
         Route::get('/subscription/{id}', [SubscriptionController::class, 'show'])->name('subscription.show');

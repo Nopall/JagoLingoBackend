@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\DataTables\SubscriptionDataTable;
 use App\Http\Controllers\Controller;
+use App\Models\Package;
 use App\Models\Subscription;
 use App\Models\Payment;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SubscriptionController extends Controller
 {
@@ -26,11 +29,19 @@ class SubscriptionController extends Controller
             ->withQueryString();
 
         // Hitung tiap status untuk badge counter
-        $countAll      = \App\Models\User::where('is_deleted', 0)->whereHas('subscriptions')->count();
-        $countActive   = \App\Models\User::where('is_deleted', 0)->whereHas('subscriptions', fn($q) => $q->where('is_active', 1))->count();
+        $countAll      = User::where('is_deleted', 0)->whereHas('subscriptions')->count();
+        $countActive   = User::where('is_deleted', 0)->whereHas('subscriptions', fn($q) => $q->where('is_active', 1))->count();
         $countInactive = $countAll - $countActive;
 
-        return view('subscription.list', compact('users', 'search', 'filter', 'countAll', 'countActive', 'countInactive'));
+        // Data untuk modal Beri Akses
+        $allUsers  = User::where('is_deleted', 0)->orderBy('name')->get(['id', 'name', 'email']);
+        $packages  = Package::where('is_active', 1)->orderBy('name')->get(['id', 'name', 'price']);
+
+        return view('subscription.list', compact(
+            'users', 'search', 'filter',
+            'countAll', 'countActive', 'countInactive',
+            'allUsers', 'packages'
+        ));
     }
 
     public function show($id)
@@ -134,6 +145,57 @@ class SubscriptionController extends Controller
                 'message' => 'Failed to delete subscription: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function grantAccess(Request $request)
+    {
+        $request->validate([
+            'user_id'    => 'required|exists:users,id',
+            'package_id' => 'required|exists:package,id',
+        ]);
+
+        $user    = User::findOrFail($request->user_id);
+        $package = Package::findOrFail($request->package_id);
+
+        // Cek apakah user sudah punya subscription aktif untuk paket ini
+        $alreadyActive = Subscription::where('user_id', $user->id)
+            ->where('is_active', 1)
+            ->whereHas('payment', fn($q) => $q->where('package_id', $package->id))
+            ->exists();
+
+        if ($alreadyActive) {
+            return response()->json([
+                'status'  => false,
+                'message' => "User sudah memiliki akses aktif ke paket \"{$package->name}\".",
+            ], 422);
+        }
+
+        DB::transaction(function () use ($user, $package) {
+            // Buat payment dengan status paid (1)
+            $payment = Payment::create([
+                'user_id'        => $user->id,
+                'package_id'     => $package->id,
+                'amount'         => $package->price,
+                'status'         => Payment::STATUS_PAID,
+                'transaction_id' => 'ADMIN-' . strtoupper(uniqid()),
+                'paid_at'        => now(),
+            ]);
+
+            // Buat subscription aktif
+            Subscription::create([
+                'user_id'    => $user->id,
+                'payment_id' => $payment->id,
+                'is_active'  => 1,
+            ]);
+
+            // Tandai user sebagai premium
+            $user->update(['is_premium' => 1]);
+        });
+
+        return response()->json([
+            'status'  => true,
+            'message' => "Akses ke paket \"{$package->name}\" berhasil diberikan kepada {$user->name}.",
+        ]);
     }
 
     // Method untuk melihat semua subscription (termasuk yang belum bayar)

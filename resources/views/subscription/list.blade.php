@@ -9,7 +9,9 @@
         <h4 class="fw-bold mb-1">Subscription</h4>
         <p class="text-muted mb-0 small">Daftar pengguna beserta paket yang mereka miliki</p>
     </div>
-    <span class="badge bg-label-primary fs-6">{{ $users->total() }} Pengguna</span>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGrantAccess">
+        <i class="bx bx-plus me-1"></i> Beri Akses
+    </button>
 </div>
 
 {{-- Filter Tabs + Search dalam satu card --}}
@@ -191,4 +193,144 @@
     @endif
 </div>
 
+{{-- Modal Beri Akses --}}
+<div class="modal fade" id="modalGrantAccess" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-initial rounded bg-label-primary p-2" style="font-size: 1.2rem;">
+                        <i class="bx bx-crown"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-semibold">Beri Akses Pembelajaran</h5>
+                        <small class="text-muted">Berikan akses paket ke pengguna tertentu</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="mb-4">
+                    <label class="form-label fw-medium" for="ga-user-search">
+                        Pengguna <span class="text-danger">*</span>
+                    </label>
+                    {{-- Search box --}}
+                    <div class="position-relative mb-2">
+                        <span class="position-absolute top-50 start-0 translate-middle-y ps-3 text-muted">
+                            <i class="bx bx-search"></i>
+                        </span>
+                        <input type="text" id="ga-user-search" class="form-control ps-5"
+                               placeholder="Ketik nama atau email untuk mencari...">
+                    </div>
+                    {{-- Select user --}}
+                    <select id="ga-user-id" class="form-select" size="5" style="height: auto;">
+                        @foreach($allUsers as $u)
+                            <option value="{{ $u->id }}" data-label="{{ strtolower($u->name) }} {{ strtolower($u->email) }}">
+                                {{ $u->name }} — {{ $u->email }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text text-end" id="ga-user-count">{{ $allUsers->count() }} pengguna</div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-medium" for="ga-package-id">
+                        Paket <span class="text-danger">*</span>
+                    </label>
+                    <select id="ga-package-id" class="form-select">
+                        <option value="" disabled selected>Pilih paket...</option>
+                        @foreach($packages as $pkg)
+                            <option value="{{ $pkg->id }}" data-price="{{ $pkg->price }}">
+                                {{ $pkg->name }}
+                                — Rp {{ number_format($pkg->price, 0, ',', '.') }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @if($packages->isEmpty())
+                        <div class="form-text text-warning">
+                            <i class="bx bx-error-circle me-1"></i>
+                            Tidak ada paket aktif. Aktifkan paket terlebih dahulu.
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <div class="modal-footer border-top py-3">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="btn-grant-access" class="btn btn-primary">
+                    <div id="ga-loading" class="spinner-border spinner-border-sm d-none me-1" role="status"></div>
+                    <i class="bx bx-check me-1" id="ga-icon"></i>
+                    Beri Akses
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('js')
+<script>
+    // Filter user di select saat mengetik di search
+    document.getElementById('ga-user-search').addEventListener('input', function () {
+        const keyword = this.value.toLowerCase();
+        const options = document.querySelectorAll('#ga-user-id option');
+        let visible = 0;
+        options.forEach(opt => {
+            const match = opt.dataset.label.includes(keyword);
+            opt.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        document.getElementById('ga-user-count').textContent = visible + ' pengguna';
+    });
+
+    // Submit grant access
+    document.getElementById('btn-grant-access').addEventListener('click', async function () {
+        const userId    = document.getElementById('ga-user-id').value;
+        const packageId = document.getElementById('ga-package-id').value;
+
+        if (!userId) {
+            Swal.fire({ icon: 'warning', title: 'Pilih pengguna terlebih dahulu!', timer: 2000, showConfirmButton: false });
+            return;
+        }
+        if (!packageId) {
+            Swal.fire({ icon: 'warning', title: 'Pilih paket terlebih dahulu!', timer: 2000, showConfirmButton: false });
+            return;
+        }
+
+        const btn  = this;
+        const load = document.getElementById('ga-loading');
+        const icon = document.getElementById('ga-icon');
+        btn.disabled = true;
+        load.classList.remove('d-none');
+        icon.classList.add('d-none');
+
+        try {
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('package_id', packageId);
+
+            const response = await httpClient.post('{{ route('subscription.grant-access') }}', formData);
+
+            Swal.fire({ icon: 'success', title: response.message, showConfirmButton: false, timer: 2000 });
+            bootstrap.Modal.getInstance(document.getElementById('modalGrantAccess')).hide();
+            setTimeout(() => location.reload(), 2000);
+        } catch (err) {
+            const msg = err?.response?.data?.message ?? 'Terjadi kesalahan, coba lagi.';
+            Swal.fire({ icon: 'error', title: 'Gagal', text: msg });
+        } finally {
+            btn.disabled = false;
+            load.classList.add('d-none');
+            icon.classList.remove('d-none');
+        }
+    });
+
+    // Reset modal saat ditutup
+    document.getElementById('modalGrantAccess').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('ga-user-search').value = '';
+        document.getElementById('ga-user-id').value = '';
+        document.getElementById('ga-package-id').value = '';
+        document.querySelectorAll('#ga-user-id option').forEach(o => o.style.display = '');
+        document.getElementById('ga-user-count').textContent = '{{ $allUsers->count() }} pengguna';
+    });
+</script>
+@endpush
